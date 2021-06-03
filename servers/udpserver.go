@@ -2,7 +2,9 @@ package servers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"sync"
 	"time"
@@ -66,6 +68,39 @@ func (this *UDPServer) handlePacketConn(pc net.PacketConn) (err error) {
 
 			fmt.Printf("packet-received: bytes=%d from=%s\n", n, addr.String())
 
+			// {"peer_id":"12345","local_address":"192.168.0.163:5055","msg_type":"1"}
+			type PeerReq struct {
+				PeerID    string `json:"peer_id"`
+				LocalAddr string `json:"local_addr"`
+				MsgType   string `json:"msg_type"`
+			}
+
+			type ProbeResp struct {
+				PeerID     string `json:"peer_id"`
+				LocalAddr  string `json:"local_addr"`
+				RemoteAddr string `json:"remote_addr"`
+				MsgType    string `json:"msg_type"`
+			}
+
+			var req PeerReq
+			err = json.Unmarshal(buffer[:n], &req)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			var resp ProbeResp
+			resp.PeerID = req.PeerID
+			resp.LocalAddr = req.LocalAddr
+			resp.RemoteAddr = addr.String()
+			resp.MsgType = req.MsgType
+
+			wbuf, err := json.Marshal(resp)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
 			deadline := time.Now().Add(timeout)
 			err = pc.SetWriteDeadline(deadline)
 			if err != nil {
@@ -73,10 +108,10 @@ func (this *UDPServer) handlePacketConn(pc net.PacketConn) (err error) {
 				return
 			}
 
-			n, err = pc.WriteTo(buffer[:n], addr)
+			n, err = pc.WriteTo(wbuf, addr)
 			if err != nil {
-				doneChan <- err
-				return
+				log.Fatal(err)
+				continue
 			}
 			fmt.Printf("packet-written: bytes=%d to=%s\n", n, addr.String())
 		}
