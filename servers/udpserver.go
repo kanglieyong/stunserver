@@ -8,6 +8,8 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"zspace.cn/stunserver/config"
 )
 
 const maxBufferSize = 1024
@@ -32,8 +34,12 @@ func Instance() *UDPServer {
 
 func newUDPServer() *UDPServer {
 	ctx, _ := context.WithCancel(context.Background())
+	serverConfig, err := config.Load()
+	if err != nil {
+		return nil
+	}
 	result := &UDPServer{
-		Address: serverAddr,
+		Address: serverConfig.Server1,
 		Context: ctx,
 	}
 	return result
