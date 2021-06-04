@@ -17,7 +17,7 @@ type ServerConfig struct {
 }
 
 func Load() (*ServerConfig, error) {
-	fileData, err := ioutil.ReadFile("stunserver.yaml")
+	fileData, err := ioutil.ReadFile(DefaultConfigFileName)
 	if err != nil {
 		return nil, err
 	}
